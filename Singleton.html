@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>테마 관리 시스템 - Singleton 패턴</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: var(--header-bg);
+            color: var(--header-text);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .theme-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .theme-btn {
+            padding: 10px 20px;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .theme-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .theme-btn.active {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: rgba(255, 255, 255, 1);
+            text-shadow: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 테마별 active 버튼 색상 */
+        :root .theme-btn.active {
+            color: #667eea;
+        }
+
+        [data-theme="dark"] .theme-btn.active {
+            color: #7c3aed;
+        }
+
+        [data-theme="ocean"] .theme-btn.active {
+            color: #006994;
+        }
+
+        [data-theme="forest"] .theme-btn.active {
+            color: #2d5016;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .sidebar {
+            background: var(--panel-bg);
+            color: var(--panel-text);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .main-content {
+            background: var(--panel-bg);
+            color: var(--panel-text);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .panel-title {
+            font-size: 20px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .info-box {
+            background: var(--info-bg);
+            color: var(--info-text);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--accent-color);
+            transition: all 0.3s ease;
+        }
+
+        .info-box h3 {
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .info-box p {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin: 15px 0;
+            border: 1px solid var(--border-color);
+        }
+
+        .instance-info {
+            background: var(--instance-bg);
+            color: var(--instance-text);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border: 2px dashed var(--border-color);
+        }
+
+        .instance-info h3 {
+            margin-bottom: 10px;
+            color: var(--accent-color);
+        }
+
+        .instance-id {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            word-break: break-all;
+            background: rgba(0, 0, 0, 0.1);
+            padding: 8px;
+            border-radius: 5px;
+            margin-top: 8px;
+        }
+
+        .demo-section {
+            margin: 20px 0;
+        }
+
+        .demo-section h3 {
+            margin-bottom: 15px;
+            color: var(--accent-color);
+        }
+
+        .component {
+            background: var(--component-bg);
+            color: var(--component-text);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border: 2px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .component:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .component-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .component-title::before {
+            content: "📦";
+            font-size: 20px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: var(--stat-bg);
+            color: var(--stat-text);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: scale(1.05);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* Light Theme (Default) */
+        :root {
+            --header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --header-text: #ffffff;
+            --panel-bg: #ffffff;
+            --panel-text: #333333;
+            --info-bg: #f0f4ff;
+            --info-text: #1a1a2e;
+            --code-bg: #f8f9fa;
+            --code-text: #212529;
+            --instance-bg: #fff9e6;
+            --instance-text: #333;
+            --component-bg: #f8f9fa;
+            --component-text: #333;
+            --stat-bg: #ffffff;
+            --stat-text: #333;
+            --border-color: #e0e0e0;
+            --accent-color: #667eea;
+        }
+
+        /* Dark Theme */
+        [data-theme="dark"] {
+            --header-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            --header-text: #ffffff;
+            --panel-bg: #1e1e2e;
+            --panel-text: #e0e0e0;
+            --info-bg: #2a2a3e;
+            --info-text: #e0e0e0;
+            --code-bg: #2d2d44;
+            --code-text: #e0e0e0;
+            --instance-bg: #2a2a3e;
+            --instance-text: #e0e0e0;
+            --component-bg: #252538;
+            --component-text: #e0e0e0;
+            --stat-bg: #2a2a3e;
+            --stat-text: #e0e0e0;
+            --border-color: #3a3a4e;
+            --accent-color: #7c3aed;
+        }
+
+        /* Ocean Theme */
+        [data-theme="ocean"] {
+            --header-bg: linear-gradient(135deg, #006994 0%, #00a8cc 100%);
+            --header-text: #ffffff;
+            --panel-bg: #ffffff;
+            --panel-text: #003d5b;
+            --info-bg: #e6f7ff;
+            --info-text: #003d5b;
+            --code-bg: #f0f9ff;
+            --code-text: #003d5b;
+            --instance-bg: #fff4e6;
+            --instance-text: #003d5b;
+            --component-bg: #f0f9ff;
+            --component-text: #003d5b;
+            --stat-bg: #ffffff;
+            --stat-text: #003d5b;
+            --border-color: #b3e5fc;
+            --accent-color: #006994;
+        }
+
+        /* Forest Theme */
+        [data-theme="forest"] {
+            --header-bg: linear-gradient(135deg, #2d5016 0%, #3d7c1f 100%);
+            --header-text: #ffffff;
+            --panel-bg: #ffffff;
+            --panel-text: #1a3d0a;
+            --info-bg: #f0f8e8;
+            --info-text: #1a3d0a;
+            --code-bg: #f5faf0;
+            --code-text: #1a3d0a;
+            --instance-bg: #fff8e6;
+            --instance-text: #1a3d0a;
+            --component-bg: #f5faf0;
+            --component-text: #1a3d0a;
+            --stat-bg: #ffffff;
+            --stat-text: #1a3d0a;
+            --border-color: #c8e6a0;
+            --accent-color: #2d5016;
+        }
+
+        body[data-theme="dark"] {
+            background: #0f0f1e;
+        }
+
+        body[data-theme="ocean"] {
+            background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+        }
+
+        body[data-theme="forest"] {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+        }
+
+        body:not([data-theme]) {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .header {
+            background: var(--header-bg);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 테마 관리 시스템</h1>
+            <p class="subtitle">Singleton 패턴을 활용한 전역 테마 관리</p>
+            <div class="theme-controls">
+                <button class="theme-btn active" data-theme="light">☀️ 라이트</button>
+                <button class="theme-btn" data-theme="dark">🌙 다크</button>
+                <button class="theme-btn" data-theme="ocean">🌊 오션</button>
+                <button class="theme-btn" data-theme="forest">🌲 포레스트</button>
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <div class="sidebar">
+                <h2 class="panel-title">📚 Singleton 패턴 설명</h2>
+                
+                <div class="info-box">
+                    <h3>패턴 개요</h3>
+                    <p>Singleton 패턴은 클래스의 인스턴스가 오직 하나만 생성되도록 보장하는 생성 패턴입니다. 전역 접근점을 제공하면서도 인스턴스 생성을 제어합니다.</p>
+                </div>
+
+                <div class="info-box">
+                    <h3>핵심 특징</h3>
+                    <p>• 단일 인스턴스 보장<br>
+                    • 전역 접근점 제공<br>
+                    • 지연 초기화 가능<br>
+                    • 스레드 안전성 고려 필요</p>
+                </div>
+
+                <div class="info-box">
+                    <h3>적용 사례</h3>
+                    <p>• 데이터베이스 연결 관리<br>
+                    • 로깅 시스템<br>
+                    • 설정 관리자<br>
+                    • <strong>테마 관리자</strong> ← 현재 예제</p>
+                </div>
+
+                <div class="instance-info">
+                    <h3>🔍 현재 인스턴스 정보</h3>
+                    <p><strong>인스턴스 ID:</strong></p>
+                    <div class="instance-id" id="instanceId">로딩 중...</div>
+                    <p style="margin-top: 10px; font-size: 12px;">
+                        모든 컴포넌트가 동일한 ThemeManager 인스턴스를 공유합니다.
+                    </p>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <h2 class="panel-title">💻 구현 코드</h2>
+                
+                <div class="code-block">
+class ThemeManager {
+    // 1. private static 인스턴스 변수
+    static #instance = null;
+    
+    // 2. private 생성자 - 외부에서 직접 생성 불가
+    constructor() {
+        if (ThemeManager.#instance) {
+            throw new Error('ThemeManager는 Singleton입니다. getInstance()를 사용하세요.');
+        }
+        this.currentTheme = 'light';
+        this.instanceId = Math.random().toString(36).substr(2, 9);
+        this.themeChangeListeners = [];
+        ThemeManager.#instance = this;
+    }
+    
+    // 3. public static 메서드로 인스턴스 접근
+    static getInstance() {
+        if (!ThemeManager.#instance) {
+            ThemeManager.#instance = new ThemeManager();
+        }
+        return ThemeManager.#instance;
+    }
+    
+    // 테마 변경 메서드
+    setTheme(theme) {
+        this.currentTheme = theme;
+        this.notifyListeners();
+    }
+    
+    getTheme() {
+        return this.currentTheme;
+    }
+    
+    // 옵저버 패턴: 테마 변경 알림
+    subscribe(callback) {
+        this.themeChangeListeners.push(callback);
+    }
+    
+    notifyListeners() {
+        this.themeChangeListeners.forEach(cb => cb(this.currentTheme));
+    }
+}
+                </div>
+
+                <div class="demo-section">
+                    <h3>🧩 컴포넌트 데모</h3>
+                    <p style="margin-bottom: 15px; color: var(--panel-text);">
+                        아래 컴포넌트들은 모두 동일한 ThemeManager 인스턴스를 사용합니다.
+                    </p>
+                    
+                    <div class="component">
+                        <div class="component-title">컴포넌트 A</div>
+                        <p>이 컴포넌트는 ThemeManager.getInstance()를 통해 테마를 가져옵니다.</p>
+                        <p style="margin-top: 8px; font-size: 12px; opacity: 0.7;">
+                            현재 테마: <strong id="componentATheme">-</strong>
+                        </p>
+                    </div>
+
+                    <div class="component">
+                        <div class="component-title">컴포넌트 B</div>
+                        <p>이 컴포넌트도 동일한 ThemeManager 인스턴스를 사용합니다.</p>
+                        <p style="margin-top: 8px; font-size: 12px; opacity: 0.7;">
+                            현재 테마: <strong id="componentBTheme">-</strong>
+                        </p>
+                    </div>
+
+                    <div class="component">
+                        <div class="component-title">컴포넌트 C</div>
+                        <p>모든 컴포넌트가 동일한 인스턴스를 참조하므로 테마가 동기화됩니다.</p>
+                        <p style="margin-top: 8px; font-size: 12px; opacity: 0.7;">
+                            현재 테마: <strong id="componentCTheme">-</strong>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="instanceCount">1</div>
+                        <div class="stat-label">인스턴스 수</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="componentCount">3</div>
+                        <div class="stat-label">구독 컴포넌트</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="themeChanges">0</div>
+                        <div class="stat-label">테마 변경 횟수</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Singleton 패턴 구현: ThemeManager
+        class ThemeManager {
+            static #instance = null;
+            
+            constructor() {
+                if (ThemeManager.#instance) {
+                    throw new Error('ThemeManager는 Singleton입니다. getInstance()를 사용하세요.');
+                }
+                this.currentTheme = 'light';
+                this.instanceId = Math.random().toString(36).substr(2, 9);
+                this.themeChangeListeners = [];
+                this.themeChangeCount = 0;
+                ThemeManager.#instance = this;
+            }
+            
+            static getInstance() {
+                if (!ThemeManager.#instance) {
+                    ThemeManager.#instance = new ThemeManager();
+                }
+                return ThemeManager.#instance;
+            }
+            
+            setTheme(theme) {
+                if (this.currentTheme !== theme) {
+                    this.currentTheme = theme;
+                    this.themeChangeCount++;
+                    this.notifyListeners();
+                }
+            }
+            
+            getTheme() {
+                return this.currentTheme;
+            }
+            
+            getInstanceId() {
+                return this.instanceId;
+            }
+            
+            getThemeChangeCount() {
+                return this.themeChangeCount;
+            }
+            
+            subscribe(callback) {
+                this.themeChangeListeners.push(callback);
+            }
+            
+            notifyListeners() {
+                this.themeChangeListeners.forEach(cb => cb(this.currentTheme));
+            }
+        }
+
+        // 애플리케이션 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            // Singleton 인스턴스 가져오기
+            const themeManager = ThemeManager.getInstance();
+            
+            // 인스턴스 정보 표시
+            document.getElementById('instanceId').textContent = themeManager.getInstanceId();
+            
+            // 테마 버튼 이벤트
+            const themeButtons = document.querySelectorAll('.theme-btn');
+            themeButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const theme = btn.dataset.theme;
+                    
+                    // 테마 변경
+                    themeManager.setTheme(theme);
+                    
+                    // 버튼 활성화 상태 업데이트
+                    themeButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+            });
+            
+            // 컴포넌트들이 테마 변경을 구독
+            const updateComponentTheme = (theme) => {
+                document.getElementById('componentATheme').textContent = theme;
+                document.getElementById('componentBTheme').textContent = theme;
+                document.getElementById('componentCTheme').textContent = theme;
+                
+                // 통계 업데이트
+                document.getElementById('themeChanges').textContent = 
+                    themeManager.getThemeChangeCount();
+                document.getElementById('componentCount').textContent = 
+                    themeManager.themeChangeListeners.length;
+            };
+            
+            // 테마 변경 리스너 등록
+            themeManager.subscribe((theme) => {
+                // body에 테마 속성 설정
+                document.body.setAttribute('data-theme', theme);
+                
+                // 컴포넌트 업데이트
+                updateComponentTheme(theme);
+            });
+            
+            // 초기 테마 설정
+            updateComponentTheme(themeManager.getTheme());
+            
+            // Singleton 검증: 여러 번 getInstance()를 호출해도 동일한 인스턴스인지 확인
+            const instance1 = ThemeManager.getInstance();
+            const instance2 = ThemeManager.getInstance();
+            const instance3 = ThemeManager.getInstance();
+            
+            console.log('Singleton 검증:');
+            console.log('instance1 === instance2:', instance1 === instance2);
+            console.log('instance2 === instance3:', instance2 === instance3);
+            console.log('모든 인스턴스가 동일:', instance1 === instance2 && instance2 === instance3);
+            console.log('인스턴스 ID:', instance1.getInstanceId());
+        });
+    </script>
+</body>
+</html>
